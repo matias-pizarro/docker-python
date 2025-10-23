@@ -48,6 +48,10 @@ for version; do
 				template='Dockerfile-windows.template'
 				;;
 
+			freebsd*)
+				template='Dockerfile-freebsd.template'
+				;;
+
 			*)
 				template='Dockerfile-linux.template'
 				;;

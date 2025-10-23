@@ -1,0 +1,3 @@
+FROM freebsd:14.3
+
+CMD ["python3"]

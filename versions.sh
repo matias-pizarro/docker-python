@@ -13,6 +13,13 @@ else
 fi
 versions=( "${versions[@]%/}" )
 
+if [ "$(uname)" == "FreeBSD" ]; then
+	sed_exec="gsed"
+else
+	sed_exec="sed"
+fi
+exit
+
 declare -A checksums=()
 check_file() {
 	local dirVersion="$1"; shift
@@ -89,14 +96,14 @@ for version in "${versions[@]}"; do
 	possibles=( $(
 		{
 			git ls-remote --tags https://github.com/python/cpython.git "refs/tags/v${rcVersion}.*" \
-				| sed -r 's!^.*refs/tags/v([0-9a-z.]+).*$!\1!' \
+				| ${sed_exec} -r 's!^.*refs/tags/v([0-9a-z.]+).*$!\1!' \
 				| grep $rcGrepV -E -- '[a-zA-Z]+' \
 				|| :
 
 			# this page has a very aggressive varnish cache in front of it, which is why we also scrape tags from GitHub
 			wget -qO- 'https://www.python.org/ftp/python/' \
 				| grep '<a href="'"$rcVersion." \
-				| sed -r 's!.*<a href="([^"/]+)/?".*!\1!' \
+				| ${sed_exec} -r 's!.*<a href="([^"/]+)/?".*!\1!' \
 				| grep $rcGrepV -E -- '[a-zA-Z]+' \
 				|| :
 		} | sort -ruV
@@ -123,7 +130,7 @@ for version in "${versions[@]}"; do
 		possibleVersions=( $(
 			wget -qO- -o /dev/null "https://www.python.org/ftp/python/$rcPossible/" \
 				| grep '<a href="Python-'"$rcVersion"'.*\.tar\.xz"' \
-				| sed -r 's!.*<a href="Python-([^"/]+)\.tar\.xz".*!\1!' \
+				| ${sed_exec} -r 's!.*<a href="Python-([^"/]+)\.tar\.xz".*!\1!' \
 				| grep $rcGrepV -E -- '[a-zA-Z]+' \
 				| sort -rV \
 				|| true
@@ -160,7 +167,7 @@ for version in "${versions[@]}"; do
 	# to not support overriding it.
 
 	# TODO remove setuptools version handling entirely once Python 3.11 is EOL
-	setuptoolsVersion="$(sed -nre 's/^_SETUPTOOLS_VERSION[[:space:]]*=[[:space:]]*"(.*?)".*/\1/p' <<<"$ensurepipVersions")"
+	setuptoolsVersion="$(${sed_exec} -nre 's/^_SETUPTOOLS_VERSION[[:space:]]*=[[:space:]]*"(.*?)".*/\1/p' <<<"$ensurepipVersions")"
 	case "$rcVersion" in
 		3.9 | 3.10 | 3.11)
 			if [ -z "$setuptoolsVersion" ]; then
@@ -199,6 +206,13 @@ for version in "${versions[@]}"; do
 					"3.21",
 					empty
 				| "alpine" + .),
+				(
+					"14.3",
+					"14.snap",
+					"15.snap",
+					"16.snap",
+					empty
+				| "freebsd" + .),
 				if env.hasWindows != "" then
 					(
 						"ltsc2025",

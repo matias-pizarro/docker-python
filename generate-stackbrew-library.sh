@@ -93,6 +93,7 @@ for version; do
 		.[env.version].variants
 		| map(select(
 			startswith("alpine")
+			startswith("freebsd")
 			or startswith("slim-")
 			or startswith("windows/")
 			| not
@@ -103,6 +104,13 @@ for version; do
 		.[env.version].variants
 		| map(select(
 			startswith("alpine")
+		))
+		| .[0]
+	' versions.json)"
+	defaultFreebsdVariant="$(jq -r '
+		.[env.version].variants
+		| map(select(
+			startswith("freebsd")
 		))
 		| .[0]
 	' versions.json)"
@@ -122,6 +130,9 @@ for version; do
 			"$defaultAlpineVariant")
 				variantAliases+=( "${versionAliases[@]/%/-alpine}" )
 				;;
+			"$defaultFreebsdVariant")
+				variantAliases+=( "${versionAliases[@]/%/-freebsd}" )
+				;;
 		esac
 		variantAliases=( "${variantAliases[@]//latest-/}" )
 
@@ -139,7 +150,7 @@ for version; do
 		# https://github.com/python/cpython/issues/93619 (Linking error when building 3.11 beta on mips64le) + https://peps.python.org/pep-0011/ (mips is not even tier 3)
 		case "$version" in
 			3.9) ;;
-			*) variantArches="$(sed <<<" $variantArches " -e 's/ mips64le / /g')" ;;
+			*) variantArches="$(sed <<<" $variantArches " -E -e 's/ mips64le / /g')" ;;
 		esac
 
 		sharedTags=()
