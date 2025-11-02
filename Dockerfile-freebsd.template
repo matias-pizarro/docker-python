@@ -1,3 +1,49 @@
-FROM freebsd:14.3
+{{
+	def rcVersion:
+		env.version | rtrimstr("-rc")
+	;
+	def minorVersion:
+		env.version | ltrimstr("3.")
+	;
+	def dotlessVersion:
+		rcVersion | sub("[.]"; "")
+-}}
+FROM ghcr.io/matias-pizarro/freebsd-oci-containers/freebsd-zfs:{{ env.variant | ltrimstr("freebsd") }}
+
+RUN set -eux; \
+    /usr/bin/env pkg install -yr FreeBSD \
+    databases/py-gdbm@py{{ dotlessVersion }} \
+    databases/py-sqlite3@py{{ dotlessVersion }} \
+    devel/py-pip@py{{ dotlessVersion }} \
+    devel/py-setuptools@py{{ dotlessVersion }} \
+    devel/py-wheel@py{{ dotlessVersion }} \
+    lang/python{{ dotlessVersion }} \
+    x11-toolkits/py-tkinter@py{{ dotlessVersion }}; \
+    /bin/rm -f /var/cache/pkg/*
+
+RUN set -eux; \
+    /bin/ln -s /usr/local/bin/pip /usr/local/bin/pip3; \
+    /bin/ln -s /usr/local/bin/pip /usr/local/bin/pip{{ rcVersion }};
+
+RUN set -eux; \
+    for src in idle{{ rcVersion }} pydoc{{ rcVersion }} python{{ rcVersion }} python{{ rcVersion }}-config; do \
+        dst="$(echo "$src" | tr -d .{{ minorVersion }})"; \
+        [ -s "/usr/local/bin/$src" ]; \
+        [ ! -e "/usr/local/bin/$dst" ]; \
+        ln -sv "$src" "/usr/local/bin/$dst"; \
+    done
+
+RUN set -eux; \
+    for src in idle3 pydoc3 python3 python3-config; do \
+        dst="$(echo "$src" | tr -d 3)"; \
+        [ -s "/usr/local/bin/$src" ]; \
+        [ ! -e "/usr/local/bin/$dst" ]; \
+        ln -sv "$src" "/usr/local/bin/$dst"; \
+    done
+
+RUN set -eux; \
+    export PYTHONDONTWRITEBYTECODE=1; \
+    python3 --version; \
+    pip3 --version
 
 CMD ["python3"]
